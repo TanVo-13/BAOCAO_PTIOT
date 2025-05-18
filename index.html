@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hệ thống nhà thông minh</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"
+      type="text/javascript"
+    ></script>
+    <script
+      src="https://code.jquery.com/jquery-3.6.1.min.js"
+      type="text/javascript"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header>
+        <h1>HỆ THỐNG NHÀ THÔNG MINH</h1>
+        <div class="auth-buttons">
+          <button id="login-btn" class="auth-btn">Đăng nhập</button>
+          <button id="signup-btn" class="auth-btn">Đăng ký</button>
+          <div id="user-info" style="display: none">
+            Xin chào!
+            <span id="user-name"></span>
+            <button id="logout-btn" class="auth-btn">Đăng xuất</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Modal Đăng nhập -->
+      <div id="login-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">×</span>
+          <h2>Đăng nhập</h2>
+          <form id="login-form">
+            <input type="email" id="login-email" placeholder="Email" required />
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Mật khẩu"
+              required
+            />
+            <button type="submit">Đăng nhập</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Đăng ký -->
+      <div id="signup-modal" class="modal">
+        <div class="modal-content">
+          <span class="close">×</span>
+          <h2>Đăng ký</h2>
+          <form id="signup-form">
+            <input
+              type="text"
+              id="signup-name"
+              placeholder="Tên đăng nhập"
+              required
+            />
+            <input
+              type="email"
+              id="signup-email"
+              placeholder="Email"
+              required
+            />
+            <input
+              type="password"
+              id="signup-password"
+              placeholder="Mật khẩu"
+              required
+            />
+            <div class="verification-section">
+              <input
+                type="text"
+                id="verification-code"
+                placeholder="Mã xác nhận"
+              />
+              <button type="button" id="send-code-btn">Gửi mã</button>
+            </div>
+            <button type="submit">Đăng ký</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Dữ liệu cảm biến -->
+      <div
+        id="sensor-data"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      >
+        <!-- Cảm biến DHT22 -->
+        <a
+          href="./dht22.html"
+          class="sensor-link bg-green-50 shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">
+            🌡️ Cảm biến DHT22 (Nhiệt độ & Độ ẩm không khí)
+          </div>
+          <div class="flex flex-col gap-1 text-gray-800">
+            <div class="flex items-center justify-between">
+              <span>💧 Độ ẩm:</span>
+              <span id="humidity" class="font-bold text-green-700"
+                >Chưa xác định</span
+              >
+            </div>
+            <div class="flex items-center justify-between">
+              <span>🌞 Nhiệt độ:</span>
+              <span id="temperature" class="font-bold text-green-700"
+                >Chưa xác định</span
+              >
+            </div>
+          </div>
+        </a>
+
+        <!-- Cảm biến độ ẩm đất -->
+        <a
+          href="/doamdat.html"
+          class="sensor-link bg-blue-50 shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">
+            🌱 Cảm biến độ ẩm đất
+          </div>
+          <div class="flex flex-col gap-2 text-gray-800">
+            <div class="flex items-center justify-between">
+              <span>💧 Độ ẩm đất:</span>
+              <span id="humidity-soil" class="font-bold text-blue-700"
+                >Chưa xác định</span
+              >
+            </div>
+            <div class="flex items-center justify-between">
+              <span>📊 Trạng thái:</span>
+              <span id="soil-status" class="font-semibold text-blue-600"
+                >Chưa xác định</span
+              >
+            </div>
+          </div>
+        </a>
+
+        <!-- Cảm biến khí gas -->
+        <a
+          href="/gas.html"
+          class="sensor-link bg-pink-50 shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">
+            🔥 Cảm biến khí gas
+          </div>
+          <div class="flex items-center justify-between text-gray-800">
+            <span>💨 Trạng thái:</span>
+            <span id="gas-status" class="font-bold text-pink-700"
+              >Chưa xác định</span
+            >
+          </div>
+          <div class="flex items-center justify-between text-gray-800">
+            <span>🔢 Nồng độ:</span>
+            <span id="gas-value" class="font-bold text-pink-700"
+              >Chưa xác định</span
+            >
+          </div>
+        </a>
+
+        <!-- Cảm biến mưa -->
+        <a
+          href="/mua.html"
+          class="sensor-link bg-indigo-50 shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">🌧️ Cảm biến mưa</div>
+          <div class="flex items-center justify-between text-gray-800">
+            <span>🌦️ Tình trạng:</span>
+            <span id="rain-status" class="font-bold text-indigo-700"
+              >Chưa xác định</span
+            >
+          </div>
+        </a>
+
+        <!-- Cảm biến mực nước -->
+        <a
+          href="./sieuam.html"
+          class="sensor-link bg-yellow-50 shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">
+            📏 Cảm biến siêu âm
+          </div>
+          <div class="flex flex-col gap-2 text-gray-800">
+            <div class="flex items-center justify-between">
+              <span>Khoảng cách đến mực nước:</span>
+              <span id="water-level" class="font-bold text-yellow-700"
+                >Chưa xác định</span
+              >
+            </div>
+            <div class="flex items-center justify-between">
+              <span>📊 Trạng thái:</span>
+              <span id="water-status" class="font-semibold text-yellow-600"
+                >Chưa xác định</span
+              >
+            </div>
+          </div>
+        </a>
+
+        <!-- Cảm biến ánh sáng (Đã cập nhật) -->
+        <a
+          href="./anhsangchuyendong.html"
+          class="sensor-link bg-white shadow rounded-2xl p-5 flex flex-col gap-3 transition-all duration-300 hover:-translate-y-2 pointer-events-none"
+        >
+          <div class="text-sm font-semibold text-gray-700">
+            💡 Cảm biến ánh sáng và chuyển động
+          </div>
+          <div class="flex flex-col gap-2 text-gray-800">
+            <div class="flex items-center justify-between">
+              <span>☀️ Cường độ ánh sáng:</span>
+              <span id="light-intensity" class="font-bold text-gray-800"
+                >Chưa xác định</span
+              >
+            </div>
+            <div class="flex items-center justify-between">
+              <span>🔆 Mức đánh giá:</span>
+              <span id="light-level" class="font-semibold text-gray-700"
+                >Chưa xác định</span
+              >
+            </div>
+            <div class="flex items-center justify-between">
+              <span>🚶 Trạng thái chuyển động:</span>
+              <span id="motion-status" class="font-semibold text-gray-700"
+                >Chưa xác định</span
+              >
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script type="module" src="./src/js/firebase.js"></script>
+    <script type="module" src="./src/js/script.js"></script>
+    <script>
+      // Khởi tạo MQTT client
+      const client = new Paho.MQTT.Client(
+        "broker.emqx.io",
+        Number(8083),
+        "5ce2d6b5-969b-4484-a350-afaa4f8e902e"
+      );
+
+      client.onConnectionLost = onConnectionLost;
+      client.onMessageArrived = onMessageArrived;
+
+      // Kết nối MQTT khi người dùng đăng nhập
+      import("./src/js/firebase.js").then((module) => {
+        const firebase = module.default;
+        firebase.auth().onAuthStateChanged((user) => {
+          const sensorLinks = document.querySelectorAll(".sensor-link");
+          if (user) {
+            if (!client.isConnected()) {
+              client.connect({ onSuccess: onConnect });
+            }
+            // Kích hoạt các liên kết cảm biến
+            sensorLinks.forEach((link) => {
+              link.classList.remove("pointer-events-none");
+            });
+          } else {
+            // Vô hiệu hóa các liên kết cảm biến
+            sensorLinks.forEach((link) => {
+              link.classList.add("pointer-events-none");
+            });
+            // Ngắt kết nối MQTT nếu đang kết nối
+            if (client.isConnected()) {
+              client.disconnect();
+            }
+          }
+        });
+      });
+
+      function onConnect() {
+        console.log("onConnect");
+        client.subscribe("HeThongNhaThongMinh");
+      }
+
+      function onConnectionLost(responseObject) {
+        if (responseObject.errorCode !== 0) {
+          console.log("onConnectionLost:" + responseObject.errorMessage);
+        }
+      }
+
+      function onMessageArrived(message) {
+        import("./src/js/firebase.js").then((module) => {
+          const firebase = module.default;
+          if (firebase.auth().currentUser) {
+            console.log("onMessageArrived:" + message.payloadString);
+            const data = JSON.parse(message.payloadString);
+            console.log(data);
+
+            const doamdat_percent = Math.round(
+              ((4095 - Number(data.doamdat)) / 4095) * 100
+            );
+
+            document.getElementById("humidity").innerText = data.doam + "%";
+            document.getElementById("temperature").innerText = data.nhietdo + "°C";
+            document.getElementById("humidity-soil").innerText =
+              doamdat_percent + "%";
+            document.getElementById("soil-status").innerText =
+              getStatusDoAmDat(doamdat_percent);
+
+            document.getElementById("gas-status").innerText = getStatusKhiGas(
+              Number(data.khigas)
+            );
+            document.getElementById("gas-value").innerText = data.khigas + " ppm";
+
+            document.getElementById("rain-status").innerText =
+              Number(data.mua) === 1 ? "Đang mưa" : "Trời khô ráo";
+
+            document.getElementById("water-level").innerText =
+              data.khoangcach + " cm";
+            document.getElementById("water-status").innerText = getStatusKhoangCach(
+              Number(data.khoangcach)
+            );
+
+            document.getElementById("light-intensity").innerText =
+              data.anhsang + " lx";
+            document.getElementById("light-level").innerText = getStatusAnhSang(
+              Number(data.anhsang)
+            );
+            document.getElementById("motion-status").innerText = getStatusChuyenDong(
+              Number(data.chuyendong)
+            );
+          }
+        });
+      }
+
+      function getStatusDoAmDat(value) {
+        if (value >= 80) {
+          return "Đất ngập nước";
+        } else if (value >= 50) {
+          return "Đất ướt";
+        } else if (value >= 30) {
+          return "Đất ẩm";
+        } else {
+          return "Đất khô";
+        }
+      }
+
+      function getStatusKhoangCach(value) {
+        if (value >= 350) {
+          return "Bể gần cạn";
+        } else if (value >= 200) {
+          return "Bể chưa đầy";
+        } else if (value >= 20) {
+          return "Bể gần đầy";
+        } else {
+          return "Bể chứa đầy";
+        }
+      }
+
+      function getStatusAnhSang(value) {
+        if (value <= 100) {
+          return "Tối";
+        } else if (value < 1000) {
+          return "Sáng vừa";
+        } else {
+          return "Sáng mạnh";
+        }
+      }
+
+      function getStatusKhiGas(value) {
+        if (value >= 2000) {
+          return "Nguy hiểm! Nồng độ khí gas rất cao";
+        } else if (value >= 1234) {
+          return "Phát hiện khí gas";
+        } else if (value >= 400) {
+          return "Có dấu hiệu khí gas";
+        } else {
+          return "Không phát hiện khí gas";
+        }
+      }
+
+      function getStatusChuyenDong(value) {
+        return value === 1 ? "Phát hiện chuyển động" : "Không có chuyển động";
+      }
+    </script>
+  </body>
+</html>

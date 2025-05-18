@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giám sát khí gas</title>
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        /* Giao diện sáng (mặc định) */
+        html {
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        /* Giao diện tối (dark mode) */
+        html.dark {
+            background-color: #1f2937;
+            color: #d1d5db;
+        }
+        /* Điều chỉnh các phần tử trong dark mode */
+        html.dark .bg-red-100 {
+            background-color: #1a0f38e0;
+            color: #f3f4f6;
+        }
+        html.dark .bg-yellow-100 {
+            background-color: #1a0f38e0;
+            color: #f3f4f6;
+        }
+        html.dark .bg-gray-100 {
+            background-color: #1a0f38e0;
+            color: #f3f4f6;
+        }
+        html.dark .bg-white {
+            background-color: #1a0f38e0;
+            color: #f3f4f6;
+        }
+        html.dark .text-red-600 {
+            color: #f87171;
+        }
+        html.dark .text-gray-700 {
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto mt-10 px-4">
+        <h2 class="text-2xl font-semibold mb-4">Giám sát khí gas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-red-100 p-4 rounded shadow">
+                <p class="text-lg font-medium">Nồng độ khí gas (ppm):</p>
+                <p id="gas-value" class="text-3xl font-bold text-red-600">0</p>
+            </div>
+            <div class="bg-yellow-100 p-4 rounded shadow flex items-center justify-between">
+                <p class="text-lg font-medium">Trạng thái còi:</p>
+                <p id="buzzer-status" class="text-xl font-semibold">Đang tắt</p>
+                <button id="buzzer-toggle" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50">Bật còi</button>
+            </div>
+        </div>
+        <div class="mb-6 flex items-center gap-6">
+            <label class="flex items-center cursor-pointer">
+                <span class="mr-3 text-lg font-medium text-purple-600">Chế độ tự động</span>
+                <div class="relative">
+                    <input type="checkbox" id="mode-toggle" class="sr-only peer" checked />
+                    <div class="w-12 h-7 bg-gray-300 rounded-full peer-checked:bg-green-600 transition-colors"></div>
+                    <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                </div>
+            </label>
+            <button id="voice-control" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">🎙️ Điều khiển bằng giọng nói</button>
+        </div>
+        <div class="mb-6 flex items-center gap-6">
+            <label class="flex items-center cursor-pointer">
+                <p id="mode-status" class="text-lg font-medium text-purple-600">Chế độ: Ban ngày</p>
+                <div class="relative">
+                    <input type="checkbox" id="night-mode-toggle" class="sr-only peer" />
+                    <div class="w-12 h-7 bg-gray-300 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                    <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform"></div>
+                </div>
+            </label>
+        </div>
+        <div class="bg-gray-100 p-4 rounded shadow">
+            <p class="text-lg font-medium">Ngưỡng kích hoạt còi (ppm):</p>
+            <input id="threshold-input" type="number" value="2000" min="0" class="w-full p-2 mt-2 border rounded" />
+            <button id="update-threshold" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Cập nhật</button>
+            <p id="current-threshold" class="mt-2 text-lg">Ngưỡng hiện tại: 2000 ppm</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow mt-6">
+            <canvas id="gas-chart" width="400" height="200"></canvas>
+        </div>
+    </div>
+    <script type="module" src="./src/js/firebase.js"></script>
+    <script type="module" src="./src/js/script.js"></script>
+    <script>
+        // Khai báo biến client toàn cục để sử dụng cho MQTT
+        let client;
+
+        // Khởi tạo khi trang web được tải
+        document.addEventListener("DOMContentLoaded", () => {
+            // Các hằng số và biến trạng thái
+            const EMAIL_COOLDOWN = 5 * 60 * 1000; // Thời gian chờ giữa các email thông báo (5 phút)
+            let threshold = 2000; // Ngưỡng kích hoạt còi ban đầu
+            let autoMode = true; // Chế độ tự động mặc định bật
+            let lastEmailSentTime = 0; // Thời điểm gửi email cuối cùng
+            let gasChart; // Đối tượng biểu đồ Chart.js
+            let voiceAlertCount = 0; // Đếm số lần thông báo giọng nói
+            let wasBelowThreshold = true; // Theo dõi trạng thái trước đó (dưới ngưỡng)
+
+            // Đảm bảo nút bật/tắt còi bị vô hiệu hóa khi khởi tạo ở chế độ tự động
+            document.getElementById("buzzer-toggle").disabled = autoMode;
+
+            // Hàm khởi tạo biểu đồ hiển thị nồng độ khí gas
+            const initChart = () => {
+                const ctx = document.getElementById("gas-chart").getContext("2d");
+                gasChart = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels: [], // Nhãn thời gian
+                        datasets: [{
+                            label: "Nồng độ khí gas (ppm)",
+                            data: [], // Dữ liệu khí gas
+                            backgroundColor: "rgba(255, 99, 132, 0.2)",
+                            borderColor: "rgb(255, 99, 132)",
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: { title: { display: true, text: "Thời gian" } },
+                            y: { beginAtZero: true, suggestedMax: 5000 }
+                        }
+                    }
+                });
+            };
+
+            // Hàm cập nhật biểu đồ với thời gian và giá trị khí gas mới
+            const updateChart = (time, value) => {
+                if (gasChart.data.labels.length >= 20) { // Giới hạn 20 điểm dữ liệu
+                    gasChart.data.labels.shift();
+                    gasChart.data.datasets[0].data.shift();
+                }
+                gasChart.data.labels.push(time);
+                gasChart.data.datasets[0].data.push(value);
+                gasChart.update();
+            };
+
+            // Hàm phát giọng nói (text-to-speech)
+            const speak = (text) => {
+                const utterance = new SpeechSynthesisUtterance(text); // Tạo đối tượng giọng nói
+                utterance.lang = "vi-VN"; // Đặt ngôn ngữ là tiếng Việt
+                window.speechSynthesis.speak(utterance); // Phát âm văn bản
+            };
+
+            // Hàm cập nhật trạng thái còi (bật/tắt) trên giao diện và gửi lệnh MQTT
+            const updateBuzzerState = (gasValue, forceOn = false) => {
+                const buzzerStatus = document.getElementById("buzzer-status");
+                const toggleButton = document.getElementById("buzzer-toggle");
+                // Xác định trạng thái còi: Bật nếu ép buộc (thủ công) hoặc (giá trị khí gas > ngưỡng và ở chế độ tự động)
+                const isOn = forceOn || (gasValue > threshold && autoMode);
+
+                // Cập nhật giao diện
+                buzzerStatus.textContent = isOn ? "Đang bật" : "Đang tắt";
+                buzzerStatus.classList.toggle("text-red-600", isOn);
+                toggleButton.textContent = isOn ? "Tắt còi" : "Bật còi";
+                toggleButton.classList.toggle("bg-green-500", !isOn);
+                toggleButton.classList.toggle("bg-red-500", isOn);
+                toggleButton.classList.toggle("hover:bg-green-600", !isOn);
+                toggleButton.classList.toggle("hover:bg-red-600", isOn);
+
+                // Gửi lệnh bật/tắt còi qua MQTT
+                const message = new Paho.MQTT.Message(isOn ? "BUZZER_ON" : "BUZZER_OFF");
+                message.destinationName = "HeThongNhaThongMinh/KhiGas/Control/BUZZER";
+                client.isConnected() ? client.send(message) : console.error("MQTT không kết nối");
+            };
+
+            // Khởi tạo kết nối MQTT
+            client = new Paho.MQTT.Client("broker.emqx.io", 8084, `gas-client-${Math.random().toString(16).slice(3)}`);
+            
+            // Xử lý khi mất kết nối MQTT
+            client.onConnectionLost = (res) => {
+                console.error("Mất kết nối MQTT:", res.errorMessage);
+                setTimeout(() => client.connect({ onSuccess: onConnect, useSSL: true }), 5000);
+            };
+
+            // Xử lý khi nhận được tin nhắn MQTT từ topic đã subscribe
+            client.onMessageArrived = (message) => {
+                let gasValue;
+                try {
+                    const payload = JSON.parse(message.payloadString);
+                    gasValue = parseFloat(payload.khigas); // Lấy giá trị khí gas
+                    if (isNaN(gasValue) || gasValue < 0) return;
+                } catch (error) {
+                    console.error("Lỗi JSON:", error);
+                    return;
+                }
+
+                // Cập nhật giá trị khí gas trên giao diện
+                const time = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                document.getElementById("gas-value").textContent = gasValue.toFixed(0);
+                updateChart(time, gasValue);
+
+                // Lưu dữ liệu khí gas vào Firebase
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        const db = firebase.database();
+                        const timestamp = Date.now();
+                        db.ref(`users/${user.uid}/sensors/gas/${timestamp}`).set({ khigas: gasValue, timestamp });
+
+                        // Gửi thông  thông báo qua Firebase nếu khí gas vượt ngưỡng
+                        if (gasValue > threshold && Date.now() - lastEmailSentTime >= EMAIL_COOLDOWN) {
+                            db.ref(`users/${user.uid}/notifications`).push({
+                                type: "gas_alert",
+                                gasValue,
+                                timestamp,
+                                status: "pending"
+                            });
+                            lastEmailSentTime = Date.now();
+                        }
+                    }
+                });
+
+                // Điều khiển còi và thông báo giọng nói dựa trên giá trị khí gas ở chế độ tự động
+                if (autoMode) {
+                    updateBuzzerState(gasValue); // Kiểm tra ngưỡng và bật/tắt còi tự động
+                    if (gasValue > threshold) {
+                        if (voiceAlertCount < 3) {
+                            voiceAlertCount++;
+                            speak(`Cảnh báo! Khí gas vượt ngưỡng: ${gasValue} pi pi en`);
+                        }
+                        wasBelowThreshold = false;
+                    } else {
+                        // Đặt lại biến đếm nếu khí gas xuống dưới ngưỡng
+                        if (!wasBelowThreshold) {
+                            voiceAlertCount = 0;
+                            wasBelowThreshold = true;
+                        }
+                    }
+                }
+            };
+
+            // Hàm gọi khi kết nối MQTT thành công
+            const onConnect = () => {
+                console.log("Kết nối MQTT thành công");
+                client.subscribe("HeThongNhaThongMinh", (err) => {
+                    if (err) console.error("Lỗi subscribe:", err);
+                    else console.log("Đã subscribe: HeThongNhaThongMinh");
+                });
+            };
+
+            // Kết nối tới MQTT broker
+            client.connect({ 
+                onSuccess: onConnect, 
+                onFailure: (err) => {
+                    console.error("Kết nối MQTT thất bại:", err.errorMessage);
+                    setTimeout(() => client.connect({ onSuccess: onConnect, useSSL: true }), 5000);
+                }, 
+                useSSL: true 
+            });
+
+            // Xử lý trạng thái đăng nhập Firebase và tải dữ liệu ban đầu
+            firebase.auth().onAuthStateChanged((user) => {
+                if (!user) return console.warn("Chưa đăng nhập");
+
+                const db = firebase.database();
+                // Tải ngưỡng đã lưu từ Firebase
+                db.ref(`users/${user.uid}/settings/threshold`).once("value").then((snapshot) => {
+                    const savedThreshold = parseInt(snapshot.val());
+                    if (savedThreshold > 0) {
+                        threshold = savedThreshold;
+                        document.getElementById("threshold-input").value = threshold;
+                        document.getElementById("current-threshold").textContent = `Ngưỡng hiện tại: ${threshold} ppm`;
+                    }
+                });
+
+                // Tải dữ liệu khí gas lịch sử từ Firebase để vẽ biểu đồ
+                db.ref(`users/${user.uid}/sensors/gas`).orderByKey().limitToLast(20).once("value").then((snapshot) => {
+                    snapshot.forEach((child) => {
+                        const data = child.val();
+                        const time = new Date(+child.key).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+                        updateChart(time, parseFloat(data.khigas));
+                    });
+                });
+            });
+
+            // Xử lý sự kiện cập nhật ngưỡng từ người dùng
+            document.getElementById("update-threshold").addEventListener("click", () => {
+                const newThreshold = parseInt(document.getElementById("threshold-input").value);
+                if (newThreshold > 0) {
+                    threshold = newThreshold; // Cập nhật ngưỡng cục bộ
+                    // Cập nhật giao diện
+                    document.getElementById("current-threshold").textContent = `Ngưỡng hiện tại: ${threshold} ppm`;
+                    // Lưu ngưỡng vào Firebase
+                    firebase.auth().onAuthStateChanged((user) => {
+                        if (user) {
+                            firebase.database().ref(`users/${user.uid}/settings/threshold`).set(threshold);
+                        }
+                    });
+                    // Gửi ngưỡng mới tới Arduino qua MQTT
+                    if (client.isConnected()) {
+                        const message = new Paho.MQTT.Message(newThreshold.toString());
+                        message.destinationName = "HeThongNhaThongMinh/KhiGas/Control/ThresholdMq2";
+                        client.send(message);
+                        console.log(`Đã gửi ngưỡng ${newThreshold} tới topic: HeThongNhaThongMinh/KhiGas/Control/ThresholdMq2`);
+                    } else {
+                        console.error("Không thể gửi ngưỡng: MQTT không kết nối");
+                    }
+                } else {
+                    alert("Vui lòng nhập giá trị lớn hơn 0!");
+                }
+            });
+
+            // Xử lý bật/tắt chế độ tự động
+            document.getElementById("mode-toggle").addEventListener("change", () => {
+                autoMode = document.getElementById("mode-toggle").checked;
+                document.getElementById("buzzer-toggle").disabled = autoMode; // Vô hiệu hóa nút còi khi chế độ tự động bật
+                // Gửi trạng thái chế độ tự động qua MQTT
+                const message = new Paho.MQTT.Message(autoMode ? "ON" : "OFF");
+                message.destinationName = "HeThongNhaThongMinh/KhiGas/Control/automodeMq2";
+                client.isConnected() ? client.send(message) : console.error("MQTT không kết nối");
+
+                // Nếu tắt chế độ tự động, giữ nguyên trạng thái còi
+                if (autoMode && client.isConnected()) {
+                    const gasValue = parseFloat(document.getElementById("gas-value").textContent);
+                    updateBuzzerState(gasValue);
+                }
+            });
+
+            // Xử lý nút bật/tắt còi thủ công
+            document.getElementById("buzzer-toggle").addEventListener("click", () => {
+                if (!client.isConnected()) return console.error("MQTT không kết nối");
+                const isOn = document.getElementById("buzzer-status").textContent === "Đang bật";
+                const gasValue = parseFloat(document.getElementById("gas-value").textContent);
+
+                // Gửi lệnh bật/tắt còi
+                const message = new Paho.MQTT.Message(isOn ? "BUZZER_OFF" : "BUZZER_ON");
+                message.destinationName = "HeThongNhaThongMinh/KhiGas/Control/BUZZER";
+                client.send(message);
+                updateBuzzerState(gasValue, !isOn);
+            });
+
+            // Xử lý chế độ ban đêm
+            document.getElementById("night-mode-toggle").addEventListener("change", () => {
+                const nightMode = document.getElementById("night-mode-toggle").checked;
+                document.documentElement.classList.toggle("dark", nightMode);
+                document.getElementById("mode-status").textContent = `Chế độ: ${nightMode ? "Ban đêm" : "Ban ngày"}`;
+            });
+
+            // Xử lý điều khiển bằng giọng nói
+            const voiceControlBtn = document.getElementById("voice-control");
+            if ("webkitSpeechRecognition" in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = "vi-VN";
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onresult = (event) => {
+                    const command = event.results[0][0].transcript.toLowerCase();
+                    if (command.includes("bật còi")) {
+                        if (autoMode) {
+                            speak("Không thể bật còi: Đang ở chế độ tự động!");
+                        } else if (client.isConnected()) {
+                            updateBuzzerState(0, true); // Bật còi
+                            speak("Đã bật còi.");
+                        } else {
+                            speak("Không thể kết nối hệ thống!");
+                        }
+                    } else if (command.includes("tắt còi")) {
+                        if (autoMode) {
+                            speak("Không thể tắt còi: Đang ở chế độ tự động!");
+                        } else if (client.isConnected()) {
+                            const gasValue = parseFloat(document.getElementById("gas-value").textContent);
+                            updateBuzzerState(gasValue, false); // Tắt còi
+                            speak("Đã tắt còi.");
+                        } else {
+                            speak("Không thể kết nối hệ thống!");
+                        }
+                    } else if (command.includes("khí ga")) {
+                        const gasValue = document.getElementById("gas-value").textContent;
+                        let status = gasValue >= threshold ? "Khí gas vượt ngưỡng!" : "An toàn";
+                        speak(`Nồng độ khí gas: ${gasValue} pi pi en. Trạng thái: ${status}.`);
+                    } else if (command.includes("ngưỡng")) {
+                        const match = command.match(/\d+/);
+                        if (match && parseInt(match[0]) > 0) {
+                            threshold = parseInt(match[0]);
+                            document.getElementById("threshold-input").value = threshold;
+                            document.getElementById("current-threshold").textContent = `Ngưỡng hiện tại: ${threshold} ppm`;
+                            // Lưu ngưỡng vào Firebase
+                            firebase.auth().onAuthStateChanged((user) => {
+                                if (user) {
+                                    firebase.database().ref(`users/${user.uid}/settings/threshold`).set(threshold);
+                                }
+                            });
+                            // Gửi ngưỡng qua MQTT
+                            if (client.isConnected()) {
+                                const message = new Paho.MQTT.Message(threshold.toString());
+                                message.destinationName = "HeThongNhaThongMinh/KhiGas/Control/ThresholdMq2";
+                                client.send(message);
+                            }
+                            speak(`Đã đổi ngưỡng thành ${threshold} pi pi en.`);
+                        } else {
+                            speak("Giá trị ngưỡng không hợp lệ!");
+                        }
+                    } else {
+                        speak("Lệnh không nhận diện!");
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Lỗi giọng nói:", event.error);
+                    speak("Lỗi nhận diện giọng nói!");
+                };
+
+                voiceControlBtn.addEventListener("click", () => {
+                    recognition.start();
+                    speak("Vui lòng nói lệnh...");
+                });
+            } else {
+                voiceControlBtn.innerText = "Giọng nói không hỗ trợ";
+                voiceControlBtn.disabled = true;
+            }
+
+            // Khởi tạo biểu đồ khi tải trang
+            initChart();
+        });
+    </script>
+</body>
+</html>

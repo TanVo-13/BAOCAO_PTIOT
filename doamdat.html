@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giám sát độ ẩm đất</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- Khu vực cảm biến độ ẩm đất -->
+      <section class="mt-10 px-4">
+        <h2 class="text-2xl font-semibold mb-4">Giám sát độ ẩm đất</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="bg-green-100 p-4 rounded shadow">
+            <p class="text-lg font-medium">Độ ẩm đất (%):</p>
+            <p id="soil-moisture-value" class="text-3xl font-bold text-green-600">0</p>
+          </div>
+
+          <div class="bg-yellow-100 p-4 rounded shadow flex items-center justify-between">
+            <p class="text-lg font-medium">Trạng thái máy bơm:</p>
+            <p id="pump-status" class="text-xl font-semibold">Đang tắt</p>
+            <button
+              id="pump-toggle"
+              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Tắt bơm
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded shadow">
+          <canvas id="soil-chart" width="400" height="200"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const ctx = document.getElementById("soil-chart").getContext("2d");
+        const soilChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Độ ẩm đất (%)",
+                data: [],
+                borderColor: "rgb(75, 192, 192)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: { title: { display: true, text: "Thời gian" } },
+              y: { beginAtZero: true, max: 100 },
+            },
+          },
+        });
+
+        // MQTT client
+        const client = new Paho.MQTT.Client(
+          "broker.emqx.io",
+          8083,
+          "soil-client-" + Math.random()
+        );
+
+        client.onConnectionLost = (response) => {
+          console.error("Mất kết nối:", response.errorMessage);
+        };
+
+        client.onMessageArrived = (message) => {
+          const soilMoisture = parseFloat(message.payloadString);
+          const timestamp = new Date().toLocaleTimeString();
+
+          // Hiển thị
+          document.getElementById("soil-moisture-value").textContent = soilMoisture.toFixed(1);
+
+          // Biểu đồ
+          if (soilChart.data.labels.length > 20) {
+            soilChart.data.labels.shift();
+            soilChart.data.datasets[0].data.shift();
+          }
+          soilChart.data.labels.push(timestamp);
+          soilChart.data.datasets[0].data.push(soilMoisture);
+          soilChart.update();
+
+          // Điều khiển máy bơm tự động
+          const pumpStatus = document.getElementById("pump-status");
+          if (soilMoisture < 30) {
+            pumpStatus.textContent = "Đang bật";
+            pumpStatus.classList.add("text-blue-600");
+          } else {
+            pumpStatus.textContent = "Đang tắt";
+            pumpStatus.classList.remove("text-blue-600");
+          }
+        };
+
+        client.connect({
+          onSuccess: () => {
+            console.log("Đã kết nối MQTT");
+            client.subscribe("HeThongNhaThongMinh/Soil");
+          },
+        });
+
+        // Nút tắt bơm
+        document.getElementById("pump-toggle").addEventListener("click", () => {
+          const message = new Paho.MQTT.Message("PUMP_OFF");
+          message.destinationName = "HeThongNhaThongMinh/Control";
+          client.send(message);
+
+          document.getElementById("pump-status").textContent = "Đang tắt";
+          document.getElementById("pump-status").classList.remove("text-blue-600");
+        });
+      });
+    </script>
+  </body>
+</html>

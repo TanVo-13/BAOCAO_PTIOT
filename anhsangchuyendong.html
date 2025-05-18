@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giám sát ánh sáng và chuyển động</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  </head>
+
+  <body class="bg-gray-100 font-sans p-6">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6 text-center">Giám sát cường độ ánh sáng và chuyển động</h1>
+
+      <section class="bg-white p-6 rounded-xl shadow mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-yellow-100 p-4 rounded shadow">
+            <p class="text-lg font-medium">Cường độ ánh sáng (lux):</p>
+            <p id="light-value" class="text-3xl font-bold text-yellow-700">--</p>
+          </div>
+          <div class="bg-gray-200 p-4 rounded shadow">
+            <p class="text-lg font-medium">Trạng thái chuyển động:</p>
+            <p id="motion-status" class="text-xl font-semibold">Không phát hiện</p>
+          </div>
+          <div class="bg-gray-200 p-4 rounded shadow flex items-center justify-between">
+            <div>
+              <p class="text-lg font-medium">Trạng thái đèn:</p>
+              <p id="light-status" class="text-xl font-semibold">Đang tắt</p>
+            </div>
+            <button
+              id="light-toggle"
+              class="bg-yellow-600 disabled:opacity-50 text-white px-4 py-2 rounded hover:bg-yellow-700"
+            >
+              Bật đèn
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-6 mb-6">
+          <label class="flex items-center cursor-pointer">
+            <span class="mr-3 text-lg font-medium text-gray-700">Chế độ tự động</span>
+            <div class="relative">
+              <input type="checkbox" id="mode-toggle" class="sr-only peer" />
+              <div class="w-12 h-7 bg-gray-300 rounded-full shadow-inner peer-checked:bg-green-600 transition-colors"></div>
+              <div class="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow transform transition-transform peer-checked:translate-x-5"></div>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-lg font-medium mb-2 text-gray-700">Cập nhật ngưỡng cường độ ánh sáng (lux):</p>
+            <div class="flex flex-col sm:flex-row items-center gap-6">
+              <input
+                type="number"
+                id="threshold-input"
+                class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Nhập ngưỡng"
+                min="0"
+                max="1000"
+                step="10"
+              />
+              <button
+                id="set-threshold"
+                class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300 w-full sm:w-auto"
+              >
+                Thay đổi ngưỡng
+              </button>
+            </div>
+            <p id="threshold-value" class="mt-3 text-xl font-semibold text-gray-800">
+              Ngưỡng hiện tại: <span id="current-threshold">100</span> lux
+            </p>
+          </div>
+          <div>
+            <p class="text-lg font-medium mb-2 text-gray-700">Cập nhật ngưỡng phát hiện chuyển động:</p>
+            <div class="flex flex-col sm:flex-row items-center gap-6">
+              <input
+                type="number"
+                id="motion-threshold-input"
+                class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Nhập ngưỡng"
+                min="1000"
+                max="2000"
+                step="10"
+              />
+              <button
+                id="set-motion-threshold"
+                class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300 w-full sm:w-auto"
+              >
+                Thay đổi ngưỡng
+              </button>
+            </div>
+            <p id="motion-threshold-value" class="mt-3 text-xl font-semibold text-gray-800">
+              Ngưỡng hiện tại: <span id="current-motion-threshold">1000</span> lux
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <p class="text-lg font-medium mb-2 text-gray-700">Hẹn lịch bật/tắt đèn:</p>
+          <div class="flex flex-col sm:flex-row items-center gap-6 mb-4">
+            <input
+              type="date"
+              id="schedule-date"
+              class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            />
+            <input
+              type="time"
+              id="schedule-time"
+              class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            />
+            <select
+              id="schedule-state"
+              class="p-3 border border-gray-300 rounded-lg w-full sm:w-1/3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            >
+              <option value="true">Bật</option>
+              <option value="false">Tắt</option>
+            </select>
+            <button
+              id="add-schedule"
+              class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300 w-full sm:w-auto"
+            >
+              Thêm lịch
+            </button>
+          </div>
+          <div id="schedule-list" class="mt-4">
+            <p class="text-lg font-medium text-gray-700">Danh sách lịch:</p>
+            <ul id="schedules" class="list-disc pl-5"></ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="bg-white p-6 rounded-xl shadow">
+        <canvas id="light-chart" height="600"></canvas>
+      </div>
+    </div>
+
+    <script type="module" src="./src/js/firebase.js"></script>
+    <script>
+      let client;
+      let lightChart;
+      let currentThreshold = 100;
+      let currentMotionThreshold = 1000;
+      let schedules = [];
+
+      // Hàm thiết lập ngày tối thiểu cho input date
+      function setMinDate() {
+        const today = new Date();
+        const minDate = today.toISOString().split("T")[0];
+        document.getElementById("schedule-date").setAttribute("min", minDate);
+      }
+
+      // Hàm kiểm tra thời gian lịch có hợp lệ (từ giờ phút hiện tại trở đi)
+      function isValidScheduleTime(year, month, day, hour, minute) {
+        // Lấy thời gian hiện tại và ép về GMT+7
+        const now = new Date();
+        const offset = 7 * 60; // GMT+7 tính bằng phút
+        const localOffset = now.getTimezoneOffset(); // Phút chênh lệch múi giờ cục bộ
+        const adjustedTime = new Date(now.getTime() + (offset + localOffset) * 60 * 1000);
+        
+        const scheduleTime = new Date(year, month - 1, day, hour, minute);
+        
+        // Gỡ lỗi: In thời gian hiện tại và thời gian lịch ra console
+        console.log("Thời gian hiện tại (GMT+7):", adjustedTime.toISOString());
+        console.log("Thời gian lịch:", scheduleTime.toISOString());
+        console.log("Kết quả so sánh:", scheduleTime >= adjustedTime);
+        
+        return scheduleTime >= adjustedTime;
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        setMinDate(); // Thiết lập ngày đặt lịch khi tải trang
+
+        const ctx = document.getElementById("light-chart").getContext("2d");
+        const modeToggle = document.getElementById("mode-toggle");
+        const lightStatus = document.getElementById("light-status");
+        const toggleBtn = document.getElementById("light-toggle");
+
+        lightChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Cường độ ánh sáng (lux)",
+                data: [],
+                backgroundColor: "rgba(250, 204, 21, 0.2)",
+                borderColor: "rgba(250, 204, 21, 1)",
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: "rgba(250, 204, 21, 1)",
+                yAxisID: "y"
+              },
+              {
+                label: "Trạng thái chuyển động",
+                data: [],
+                backgroundColor: "rgba(34, 197, 94, 0.2)",
+                borderColor: "rgba(34, 197, 94, 1)",
+                borderWidth: 3,
+                fill: true,
+                tension: 0,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: "rgba(34, 197, 94, 1)",
+                yAxisID: "y1"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                labels: {
+                  font: { size: 14 },
+                  color: "#374151"
+                }
+              },
+              tooltip: {
+                backgroundColor: "rgba(0,0,0,0.7)",
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                padding: 10
+              }
+            },
+            layout: {
+              padding: {
+                top: 10,
+                bottom: 10,
+                left: 15,
+                right: 15
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "Thời gian",
+                  color: "#374151",
+                  font: { size: 14, weight: "bold" }
+                },
+                ticks: {
+                  color: "#6B7280",
+                  font: { size: 12 }
+                },
+                grid: {
+                  color: "#E5E7EB"
+                }
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Lux",
+                  color: "#374151",
+                  font: { size: 14, weight: "bold" }
+                },
+                ticks: {
+                  color: "#6B7280",
+                  font: { size: 12 }
+                },
+                grid: {
+                  color: "#E5E7EB"
+                }
+              },
+              y1: {
+                beginAtZero: true,
+                max: 1,
+                position: "right",
+                title: {
+                  display: true,
+                  text: "Chuyển động",
+                  color: "#374151",
+                  font: { size: 14, weight: "bold" }
+                },
+                ticks: {
+                  color: "#6B7280",
+                  font: { size: 12 },
+                  stepSize: 1
+                },
+                grid: {
+                  drawOnChartArea: false
+                }
+              }
+            }
+          }
+        });
+
+        modeToggle.addEventListener("change", onChangeAutoLight);
+
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            const db = firebase.database();
+            // Tải dữ liệu cảm biến
+            db.ref(`users/${user.uid}/sensors/ldrpirData`)
+              .orderByKey()
+              .limitToLast(20)
+              .once("value")
+              .then((snapshot) => {
+                snapshot.forEach((childSnapshot) => {
+                  const data = childSnapshot.val();
+                  const time = new Date(+childSnapshot.key).toLocaleTimeString();
+                  updateChart(time, parseFloat(data.lux), parseInt(data.motion));
+                });
+              });
+
+            // Tải lịch từ Firebase
+            db.ref(`users/${user.uid}/schedulesled`)
+              .once("value")
+              .then((snapshot) => {
+                schedules = [];
+                snapshot.forEach((childSnapshot) => {
+                  const schedule = childSnapshot.val();
+                  schedules.push({ ...schedule, key: childSnapshot.key });
+                });
+                updateScheduleList();
+                // Gửi lịch đến Arduino
+                schedules.forEach((schedule) => {
+                  if (client.isConnected()) {
+                    const message = new Paho.MQTT.Message(JSON.stringify({
+                      year: schedule.year,
+                      month: schedule.month,
+                      day: schedule.day,
+                      hour: schedule.hour,
+                      minute: schedule.minute,
+                      state: schedule.state
+                    }));
+                    message.destinationName = "HeThongNhaThongMinh/LDR/Control/ScheduleLed";
+                    client.send(message);
+                  }
+                });
+              });
+          }
+        });
+
+        client = new Paho.MQTT.Client("broker.emqx.io", 8083, "client-id-" + Date.now());
+        client.onConnectionLost = (res) => {
+          if (res.errorCode !== 0)
+            console.error("Mất kết nối:", res.errorMessage);
+        };
+        client.onMessageArrived = onMessageArrived;
+
+        client.connect({
+          onSuccess: () => {
+            console.log("Đã kết nối MQTT");
+            client.subscribe("HeThongNhaThongMinh");
+          },
+          onFailure: (err) =>
+            console.error("Kết nối MQTT thất bại:", err.errorMessage)
+        });
+
+        toggleBtn.addEventListener("click", () => {
+          if (!client.isConnected()) return alert("MQTT chưa kết nối!");
+          modeToggle.checked = false;
+          toggleBtn.disabled = false;
+
+          const isOn = lightStatus.textContent.includes("bật");
+
+          const message = new Paho.MQTT.Message(!isOn ? "LIGHT_ON" : "LIGHT_OFF");
+          message.destinationName = "HeThongNhaThongMinh/LDR/Control/LED";
+          client.send(message);
+
+          const message2 = new Paho.MQTT.Message("OFF");
+          message2.destinationName = "HeThongNhaThongMinh/LDR/Control/automodeLdr";
+          client.send(message2);
+
+          lightStatus.textContent = isOn ? "Đang tắt" : "Đang bật";
+          lightStatus.classList.toggle("text-yellow-600", !isOn);
+          toggleBtn.textContent = isOn ? "Bật đèn" : "Tắt đèn";
+        });
+
+        document.getElementById("set-threshold").addEventListener("click", () => {
+          const val = parseFloat(document.getElementById("threshold-input").value);
+          if (!isNaN(val) && val >= 0 && val <= 1000) {
+            currentThreshold = val;
+            document.getElementById("current-threshold").textContent = val.toFixed(0);
+            if (client.isConnected()) {
+              const message = new Paho.MQTT.Message(val.toString());
+              message.destinationName = "HeThongNhaThongMinh/LDR/Control/ThresholdLdr";
+              client.send(message);
+              console.log(`Đã gửi ngưỡng ${val} tới topic: HeThongNhaThongMinh/LDR/Control/ThresholdLdr`);
+            } else {
+              alert("MQTT chưa kết nối!");
+            }
+          } else {
+            alert("Ngưỡng phải nằm trong khoảng 0 - 1000 lux");
+          }
+        });
+
+        document.getElementById("set-motion-threshold").addEventListener("click", () => {
+          const val = parseFloat(document.getElementById("motion-threshold-input").value);
+          if (!isNaN(val) && val >= 1000 && val <= 2000) {
+            currentMotionThreshold = val;
+            document.getElementById("current-motion-threshold").textContent = val.toFixed(0);
+            if (client.isConnected()) {
+              const message = new Paho.MQTT.Message(val.toString());
+              message.destinationName = "HeThongNhaThongMinh/PIR/Control/ThresholdPir";
+              client.send(message);
+              console.log(`Đã gửi ngưỡng ${val} tới topic: HeThongNhaThongMinh/PIR/Control/ThresholdPir`);
+            } else {
+              alert("MQTT chưa kết nối!");
+            }
+          } else {
+            alert("Ngưỡng phải nằm trong khoảng 1000 - 2000");
+          }
+        });
+
+        document.getElementById("add-schedule").addEventListener("click", () => {
+          const dateInput = document.getElementById("schedule-date").value;
+          const timeInput = document.getElementById("schedule-time").value;
+          const state = document.getElementById("schedule-state").value === "true";
+          if (dateInput && timeInput && schedules.length < 10) {
+            const [year, month, day] = dateInput.split("-").map(Number);
+            const [hour, minute] = timeInput.split(":").map(Number);
+
+            // Kiểm tra thời gian lịch có hợp lệ
+            if (!isValidScheduleTime(year, month, day, hour, minute)) {
+              alert("Thời gian lịch phải từ giờ hiện tại trở đi!");
+              return;
+            }
+
+            const schedule = { year, month, day, hour, minute, state };
+            
+            firebase.auth().onAuthStateChanged((user) => {
+              if (user) {
+                const db = firebase.database();
+                const newScheduleRef = db.ref(`users/${user.uid}/schedulesled`).push();
+                newScheduleRef.set(schedule).then(() => {
+                  schedules.push({ ...schedule, key: newScheduleRef.key });
+                  updateScheduleList();
+                  if (client.isConnected()) {
+                    const message = new Paho.MQTT.Message(JSON.stringify(schedule));
+                    message.destinationName = "HeThongNhaThongMinh/LDR/Control/ScheduleLed";
+                    client.send(message);
+                  } else {
+                    alert("MQTT chưa kết nối!");
+                  }
+                });
+              }
+            });
+          } else {
+            alert(schedules.length >= 10 ? "Đã đạt giới hạn 10 lịch!" : "Vui lòng chọn ngày và thời gian!");
+          }
+        });
+      });
+
+      function updateScheduleList() {
+        const scheduleList = document.getElementById("schedules");
+        scheduleList.innerHTML = "";
+        schedules.forEach((schedule, index) => {
+          const li = document.createElement("li");
+          li.className = "text-gray-700 flex items-center justify-between";
+          li.innerHTML = `
+            ${schedule.year}/${schedule.month.toString().padStart(2, "0")}/${schedule.day.toString().padStart(2, "0")} 
+            ${schedule.hour.toString().padStart(2, "0")}:${schedule.minute.toString().padStart(2, "0")} - ${schedule.state ? "Bật" : "Tắt"}
+            <button class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 delete-schedule" data-index="${index}" data-key="${schedule.key}">Xóa</button>
+          `;
+          scheduleList.appendChild(li);
+        });
+
+        document.querySelectorAll(".delete-schedule").forEach(button => {
+          button.addEventListener("click", () => {
+            const index = parseInt(button.dataset.index);
+            const key = button.dataset.key;
+            
+            firebase.auth().onAuthStateChanged((user) => {
+              if (user) {
+                const db = firebase.database();
+                db.ref(`users/${user.uid}/schedulesled/${key}`).remove().then(() => {
+                  schedules.splice(index, 1);
+                  updateScheduleList();
+                  if (client.isConnected()) {
+                    const message = new Paho.MQTT.Message(index.toString());
+                    message.destinationName = "HeThongNhaThongMinh/LDR/Control/DeleteScheduleLed";
+                    client.send(message);
+                  } else {
+                    alert("MQTT chưa kết nối!");
+                  }
+                });
+              }
+            });
+          });
+        });
+      }
+
+      function onChangeAutoLight() {
+        const modeToggle = document.getElementById("mode-toggle");
+        const toggleBtn = document.getElementById("light-toggle");
+
+        const message = new Paho.MQTT.Message(modeToggle.checked ? "ON" : "OFF");
+        message.destinationName = "HeThongNhaThongMinh/LDR/Control/automodeLdr";
+        client.send(message);
+
+        toggleBtn.disabled = modeToggle.checked;
+      }
+
+      function onMessageArrived(message) {
+        if (message.destinationName === "HeThongNhaThongMinh") {
+          const data = JSON.parse(message.payloadString);
+          const lux = parseFloat(data.anhsang);
+          const motion = parseInt(data.chuyendong);
+          const automodeLight = data.automodeLdr;
+          const nguongLdr = parseFloat(data.nguongLdr);
+          const nguongPir = parseFloat(data.nguongPir);
+          const timeStr = new Date().toLocaleTimeString();
+
+          if (isNaN(lux)) return;
+
+          if (!isNaN(nguongLdr) && nguongLdr >= 0 && nguongLdr <= 1000) {
+            currentThreshold = nguongLdr;
+            document.getElementById("current-threshold").textContent = nguongLdr.toFixed(0);
+          }
+
+          if (!isNaN(nguongPir) && nguongPir >= 1000 && nguongPir <= 2000) {
+            currentMotionThreshold = nguongPir;
+            document.getElementById("current-motion-threshold").textContent = nguongPir.toFixed(0);
+          }
+
+          updateChart(timeStr, lux, motion);
+
+          firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+              const db = firebase.database();
+              const time = Date.now();
+              db.ref(`users/${user.uid}/sensors/ldrpirData/${time}`).set({
+                lux: lux,
+                motion: motion,
+                timestamp: time
+              });
+            }
+          });
+
+          document.getElementById("light-value").textContent = lux.toFixed(0);
+          document.getElementById("motion-status").textContent = motion ? "Phát hiện" : "Không phát hiện";
+          document.getElementById("motion-status").classList.toggle("text-green-600", motion);
+
+          const modeToggle = document.getElementById("mode-toggle");
+          const lightStatus = document.getElementById("light-status");
+          const toggleBtn = document.getElementById("light-toggle");
+
+          modeToggle.checked = automodeLight;
+          toggleBtn.disabled = automodeLight;
+
+          if (automodeLight) {
+            if (lux < currentThreshold || (lux < currentMotionThreshold && motion)) {
+              lightStatus.textContent = "Đang bật";
+              lightStatus.classList.add("text-yellow-600");
+              toggleBtn.textContent = "Tắt đèn";
+            } else {
+              lightStatus.textContent = "Đang tắt";
+              lightStatus.classList.remove("text-yellow-600");
+              toggleBtn.textContent = "Bật đèn";
+            }
+          }
+        }
+      }
+
+      function updateChart(time, lux, motion) {
+        const maxPoints = 20;
+        const chart = lightChart;
+        if (chart.data.labels.length >= maxPoints) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+          chart.data.datasets[1].data.shift();
+        }
+        chart.data.labels.push(time);
+        chart.data.datasets[0].data.push(lux);
+        chart.data.datasets[1].data.push(motion);
+        chart.update();
+      }
+    </script>
+  </body>
+</html>

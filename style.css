@@ -1,0 +1,309 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px 0;
+}
+
+h1 {
+    color: #28a745;
+    font-size: 30px;
+    margin: 0;
+    font-weight: bold;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.auth-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color 0.3s ease;
+    color: #ffffff;
+}
+
+.auth-btn:nth-child(1) {
+    background-color: #1e90ff;
+}
+
+.auth-btn:nth-child(2) {
+    background-color: #28a745;
+}
+
+.auth-btn:nth-child(3) {
+    background-color: #ff4d4d;
+}
+
+.auth-btn:hover {
+    opacity: 0.9;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 12px;
+    width: 350px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #aaa;
+}
+
+.close:hover,
+.close:focus {
+    color: #333;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-content input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border 0.3s ease;
+}
+
+.modal-content input:focus {
+    border-color: #28a745;
+}
+
+.modal-content button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: #1e90ff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.modal-content button:hover {
+    background-color: #1976d2;
+}
+
+.verification-section {
+    display: flex;
+    gap: 12px;
+}
+
+.verification-section input {
+    flex: 7;
+    padding: 10px;
+}
+
+.verification-section button {
+    flex: 3;
+    padding: 10px;
+    background-color: #ccc;
+    color: #333;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.verification-section button:hover {
+    background-color: #666;
+}
+
+/* Sensor Grid */
+
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.sensor-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.3s ease;
+}
+
+.sensor-card:hover {
+    transform: translateY(-10px);
+}
+
+.sensor-card .icon {
+    font-size: 30px;
+    color: #28a745;
+}
+
+.sensor-card .data {
+    text-align: left;
+}
+
+.sensor-card p {
+    margin: 0;
+    font-size: 15px;
+    color: #666;
+}
+
+.sensor-card span {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+/* Màu sắc cho từng ô cảm biến */
+
+.humidity {
+    background-color: #e6f4ea;
+}
+
+.humidity span {
+    color: #28a745;
+}
+
+.gas {
+    background-color: #ffe6f0;
+}
+
+.gas span {
+    color: #ff69b4;
+}
+
+.temperature {
+    background-color: #fff4e6;
+}
+
+.temperature span {
+    color: #ff8c00;
+}
+
+.motion {
+    background-color: #fff0e6;
+}
+
+.motion span {
+    color: #ff4500;
+}
+
+.co2 {
+    background-color: #f0e6ff;
+}
+
+.co2 span {
+    color: #8a2be2;
+}
+
+.door {
+    background-color: #e6f0ff;
+}
+
+.door span {
+    color: #1e90ff;
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.on {
+    background-color: #1e90ff;
+    color: white;
+}
+
+.off {
+    background-color: #ff4d4d;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+/* Kiểu cho phần thông tin người dùng */
+#user-info {
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+}
+
+#user-icon {
+    font-size: 24px; /* Kích thước biểu tượng người dùng */
+    margin-right: 10px;
+}
+
+#user-name {
+    font-size: 18px;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+#logout-btn {
+    background-color: #f44336;
+    color: #ffffff;
+}
+
+#logout-btn:hover {
+    background-color: #e53935;
+}

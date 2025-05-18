@@ -1,0 +1,142 @@
+<<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giám sát nhiệt độ và độ ẩm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  </head>
+
+  <body class="bg-gray-100 font-sans p-6">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6 text-center">Giám sát trời mưa</h1>
+
+      <!-- Trạng thái mưa -->
+      <section class="bg-white p-6 rounded-xl shadow mb-6">
+        <h2 class="text-xl font-semibold mb-4">Cảm biến mưa</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-blue-100 p-4 rounded shadow">
+            <p class="text-lg font-medium">Trạng thái trời mưa:</p>
+            <p id="rain-status" class="text-2xl font-bold text-gray-700">Đang kiểm tra...</p>
+          </div>
+          <div class="bg-yellow-100 p-4 rounded shadow flex items-center justify-between">
+            <div>
+              <p class="text-lg font-medium">Trạng thái mái che:</p>
+              <p id="motor-status" class="text-xl font-semibold">Đang đóng</p>
+            </div>
+            <button
+              id="motor-toggle"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              Đóng mái che
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Biểu đồ -->
+      <div class="bg-white p-6 rounded-xl shadow">
+        <canvas id="rain-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const ctx = document.getElementById("rain-chart").getContext("2d");
+        const rainChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Giá trị cảm biến mưa (%)",
+                data: [],
+                backgroundColor: "rgba(59, 130, 246, 0.2)",
+                borderColor: "rgb(59, 130, 246)",
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: { title: { display: true, text: "Thời gian" } },
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: { display: true, text: "Độ ẩm (%)" },
+              },
+            },
+          },
+        });
+
+        const rainStatus = document.getElementById("rain-status");
+        const motorStatus = document.getElementById("motor-status");
+
+        // MQTT client
+        const client = new Paho.MQTT.Client(
+          "broker.emqx.io",
+          8083,
+          "rain-client-" + Math.random()
+        );
+
+        client.onConnectionLost = (response) => {
+          console.error("Mất kết nối:", response.errorMessage);
+        };
+
+        client.onMessageArrived = (message) => {
+          const rainValue = parseFloat(message.payloadString); // 0 = mưa, 1 = không mưa
+          const now = new Date().toLocaleTimeString();
+
+          // Cập nhật biểu đồ
+          if (rainChart.data.labels.length > 20) {
+            rainChart.data.labels.shift();
+            rainChart.data.datasets[0].data.shift();
+          }
+          rainChart.data.labels.push(now);
+          rainChart.data.datasets[0].data.push(rainValue * 100);
+          rainChart.update();
+
+          // Hiển thị trạng thái mưa
+          if (rainValue === 0) {
+            rainStatus.textContent = "☔ Có mưa";
+            rainStatus.classList.add("text-red-600");
+            motorStatus.textContent = "Đang mở";
+            motorStatus.classList.add("text-green-600");
+
+            const msg = new Paho.MQTT.Message("MOTOR_OPEN");
+            msg.destinationName = "HeThongNhaThongMinh/Control";
+            client.send(msg);
+          } else {
+            rainStatus.textContent = "☀ Không mưa";
+            rainStatus.classList.remove("text-red-600");
+          }
+        };
+
+        client.connect({
+          onSuccess: () => {
+            console.log("Đã kết nối MQTT");
+            client.subscribe("HeThongNhaThongMinh/Rain");
+          },
+        });
+
+        document.getElementById("motor-toggle").addEventListener("click", () => {
+          const msg = new Paho.MQTT.Message("MOTOR_CLOSE");
+          msg.destinationName = "HeThongNhaThongMinh/Control";
+          client.send(msg);
+
+          motorStatus.textContent = "Đang đóng";
+          motorStatus.classList.remove("text-green-600");
+        });
+      });
+    </script>
+  </body>
+</html>

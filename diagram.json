@@ -1,0 +1,276 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 76.8, "left": 100.84, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": -230.1, "left": 253.8, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd1", "top": -19.2, "left": 153, "attrs": {} },
+    {
+      "type": "wokwi-lcd2004",
+      "id": "lcd1",
+      "top": -339.2,
+      "left": 456.8,
+      "attrs": { "pins": "i2c" }
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc1",
+      "top": -10.56,
+      "left": 182.6,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-gas-sensor",
+      "id": "gas1",
+      "top": -100,
+      "left": 2.9,
+      "rotate": 90,
+      "attrs": {}
+    },
+    { "type": "wokwi-gnd", "id": "gnd2", "top": 57.6, "left": 57, "attrs": {} },
+    { "type": "wokwi-vcc", "id": "vcc2", "top": 66.24, "left": 29, "rotate": 180, "attrs": {} },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "ldr1",
+      "top": -92.8,
+      "left": -277.6,
+      "attrs": {}
+    },
+    { "type": "wokwi-vcc", "id": "vcc3", "top": -101, "left": -24.76, "rotate": 90, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd3", "top": -85.5, "left": -29.9, "rotate": 270, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": -38.2, "left": 489.6, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd4", "top": -86.4, "left": 287.4, "attrs": {} },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc4",
+      "top": -77.76,
+      "left": 249.8,
+      "rotate": 180,
+      "attrs": {}
+    },
+    { "type": "wokwi-gnd", "id": "gnd5", "top": -345.1, "left": 307.5, "rotate": 90, "attrs": {} },
+    { "type": "wokwi-vcc", "id": "vcc5", "top": -312, "left": 303.36, "rotate": 270, "attrs": {} },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": -132,
+      "left": 366.6,
+      "attrs": { "volume": "0.1" }
+    },
+    { "type": "wokwi-gnd", "id": "gnd6", "top": -28.8, "left": 373.8, "attrs": {} },
+    {
+      "type": "wokwi-custom-sensor",
+      "id": "rainSensor",
+      "top": 200,
+      "left": 100,
+      "attrs": {
+        "label": "Rain Sensor",
+        "values": "[\"1023\",\"800\",\"600\",\"400\",\"200\",\"0\"]",
+        "interval": "1000"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": -29.6,
+      "left": -248.2,
+      "rotate": 270,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 43.2,
+      "left": -48.55,
+      "rotate": 90,
+      "attrs": { "value": "1000" }
+    },
+    { "type": "wokwi-gnd", "id": "gnd7", "top": -8.7, "left": -154.7, "rotate": 270, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic1", "top": 20.7, "left": -215.3, "attrs": {} },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc6",
+      "top": 143.04,
+      "left": -153.4,
+      "rotate": 180,
+      "attrs": {}
+    },
+    { "type": "wokwi-gnd", "id": "gnd8", "top": 134.4, "left": -125.4, "attrs": {} },
+    {
+      "type": "wokwi-stepper-motor",
+      "id": "stepper1",
+      "top": -92.39,
+      "left": -450.77,
+      "attrs": { "size": "17" }
+    },
+    { "type": "wokwi-a4988", "id": "drv1", "top": 101, "left": -398, "rotate": 270, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -106.9, "left": 143.8, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd9", "top": -18.7, "left": 432.3, "rotate": 90, "attrs": {} },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc7",
+      "top": -33.6,
+      "left": 428.16,
+      "rotate": 270,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 92.6,
+      "left": 528,
+      "attrs": { "color": "green", "xray": "1" }
+    },
+    {
+      "type": "wokwi-gnd",
+      "id": "gnd10",
+      "top": 106.5,
+      "left": 622.9,
+      "rotate": 270,
+      "attrs": {}
+    },
+    { "type": "wokwi-servo", "id": "servo1", "top": 247.6, "left": 316.8, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd11", "top": 269.3, "left": 249.9, "rotate": 90, "attrs": {} },
+    {
+      "type": "wokwi-stepper-motor",
+      "id": "stepper2",
+      "top": -121.19,
+      "left": 672.43,
+      "attrs": { "size": "17" }
+    },
+    {
+      "type": "wokwi-a4988",
+      "id": "drv2",
+      "top": 120.2,
+      "left": 725.2,
+      "rotate": 270,
+      "attrs": {}
+    },
+    { "type": "wokwi-gnd", "id": "gnd12", "top": 59, "left": 806.2, "rotate": 180, "attrs": {} },
+    { "type": "wokwi-vcc", "id": "vcc8", "top": 58.36, "left": 777.6, "attrs": {} },
+    { "type": "wokwi-vcc", "id": "vcc9", "top": 71.8, "left": -303.16, "rotate": 90, "attrs": {} },
+    {
+      "type": "wokwi-gnd",
+      "id": "gnd13",
+      "top": 96.9,
+      "left": -289.1,
+      "rotate": 270,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc10",
+      "top": 292.8,
+      "left": 245.76,
+      "rotate": 270,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc11",
+      "top": 167.8,
+      "left": -303.16,
+      "rotate": 90,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc12",
+      "top": 200.64,
+      "left": -383.8,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc13",
+      "top": 200.64,
+      "left": -364.6,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir1",
+      "top": 242.28,
+      "left": -225.9,
+      "rotate": 270,
+      "attrs": {}
+    },
+    { "type": "wokwi-vcc", "id": "vcc14", "top": 283, "left": -82.36, "rotate": 90, "attrs": {} },
+    {
+      "type": "wokwi-gnd",
+      "id": "gnd14",
+      "top": 260.1,
+      "left": -106.7,
+      "rotate": 270,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "ldr1:VCC", "vcc3:VCC", "red", [ "h0" ] ],
+    [ "gas1:GND", "gnd2:GND", "black", [ "h0" ] ],
+    [ "vcc2:VCC", "gas1:VCC", "red", [ "v0" ] ],
+    [ "gnd5:GND", "lcd1:GND", "black", [ "v0" ] ],
+    [ "ldr1:GND", "gnd3:GND", "black", [ "h0" ] ],
+    [ "rainSensor:0", "esp:33", "green", [ "v0" ] ],
+    [ "led1:C", "gnd7:GND", "black", [ "v0" ] ],
+    [ "ultrasonic1:VCC", "vcc6:VCC", "red", [ "v0" ] ],
+    [ "ultrasonic1:GND", "gnd8:GND", "black", [ "v0" ] ],
+    [ "ultrasonic1:ECHO", "esp:25", "green", [ "v0" ] ],
+    [ "ultrasonic1:TRIG", "esp:26", "green", [ "v0" ] ],
+    [ "stepper1:A-", "drv1:2B", "green", [ "v0" ] ],
+    [ "stepper1:A+", "drv1:2A", "green", [ "v0" ] ],
+    [ "stepper1:B+", "drv1:1A", "green", [ "v0" ] ],
+    [ "drv1:1B", "stepper1:B-", "green", [ "v0" ] ],
+    [ "r1:1", "led1:A", "green", [ "h0.3", "v-27.4", "h-211.2" ] ],
+    [ "r1:2", "esp:33", "green", [ "h0.3", "v96.2" ] ],
+    [ "gnd10:GND", "btn1:2.r", "black", [ "v0" ] ],
+    [ "gnd11:GND", "servo1:GND", "black", [ "v0", "h38.4" ] ],
+    [ "servo1:PWM", "esp:15", "green", [ "h-105.6", "v-28.6" ] ],
+    [ "stepper2:A-", "drv2:2B", "green", [ "v0" ] ],
+    [ "stepper2:A+", "drv2:2A", "green", [ "v0" ] ],
+    [ "stepper2:B+", "drv2:1A", "green", [ "v0" ] ],
+    [ "stepper2:B-", "drv2:1B", "green", [ "v0" ] ],
+    [ "drv2:DIR", "esp:2", "green", [ "v0" ] ],
+    [ "drv2:STEP", "esp:0", "green", [ "v0" ] ],
+    [ "drv2:SLEEP", "esp:4", "green", [ "v0" ] ],
+    [ "drv2:RESET", "esp:16", "green", [ "v0" ] ],
+    [ "gnd12:GND", "drv2:GND.1", "black", [ "v0" ] ],
+    [ "vcc8:VCC", "drv2:VDD", "red", [ "v28.8", "h-9.6" ] ],
+    [ "vcc9:VCC", "drv1:VDD", "red", [ "v0", "h-38.4", "v28.8" ] ],
+    [ "drv1:GND.1", "gnd13:GND", "black", [ "h0" ] ],
+    [ "vcc10:VCC", "servo1:V+", "red", [ "v0" ] ],
+    [ "ldr1:AO", "esp:32", "green", [ "h115.2", "v210.5" ] ],
+    [ "vcc5:VCC", "lcd1:VCC", "red", [ "v0" ] ],
+    [ "gas1:AOUT", "esp:35", "green", [ "v0" ] ],
+    [ "dht1:SDA", "esp:23", "green", [ "v0" ] ],
+    [ "relay1:IN", "esp:18", "green", [ "h0", "v172.6" ] ],
+    [ "lcd1:SDA", "esp:21", "green", [ "h-115.2", "v451.4" ] ],
+    [ "bz1:2", "esp:19", "green", [ "v220.8", "h-10" ] ],
+    [ "bz1:1", "gnd6:GND", "green", [ "v0" ] ],
+    [ "pot1:SIG", "esp:34", "green", [ "v105.6", "h-86.8", "v76.8" ] ],
+    [ "pot1:GND", "gnd1:GND", "black", [ "v0" ] ],
+    [ "pot1:VCC", "vcc1:VCC", "red", [ "v0" ] ],
+    [ "dht1:VCC", "vcc4:VCC", "red", [ "v0" ] ],
+    [ "dht1:GND", "gnd4:GND", "black", [ "v0" ] ],
+    [ "relay1:GND", "gnd9:GND", "black", [ "h0" ] ],
+    [ "vcc7:VCC", "relay1:VCC", "red", [ "v0" ] ],
+    [ "lcd1:SCL", "esp:22", "green", [ "h-105.6", "v403.5" ] ],
+    [ "btn1:1.l", "esp:5", "green", [ "h-28.8", "v86.4" ] ],
+    [ "drv2:ENABLE", "esp:17", "green", [ "v0" ] ],
+    [ "drv1:STEP", "esp:27", "green", [ "v0" ] ],
+    [ "vcc13:VCC", "drv1:SLEEP", "red", [ "v0" ] ],
+    [ "vcc11:VCC", "drv1:DIR", "red", [ "v0", "h-28.8" ] ],
+    [ "drv1:RESET", "vcc12:VCC", "green", [ "v0" ] ],
+    [ "pir1:VCC", "vcc14:VCC", "red", [ "v0" ] ],
+    [ "gnd14:GND", "pir1:GND", "black", [ "v0" ] ],
+    [ "drv1:ENABLE", "esp:14", "green", [ "v67.2", "h489.6", "v-19.2" ] ],
+    [ "pir1:OUT", "esp:12", "green", [ "h220.8", "v-67.06" ] ]
+  ],
+  "dependencies": {}
+}
