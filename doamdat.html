@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Giám sát độ ẩm đất</title>
+    <title>Giám sát độ ẩm đất 1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </head>
 
   <body class="bg-gray-100 p-6 font-sans">
@@ -48,6 +48,14 @@
             </button>
           </div>
         </div>
+
+        <button
+          id="voice-control"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          🎙️ Điều khiển bằng giọng nói
+        </button>
+
         <!-- Chế độ tự động -->
         <div class="flex items-center gap-6 my-6">
           <label class="flex items-center cursor-pointer">
@@ -351,6 +359,93 @@
               });
             }
           });
+
+        const voiceControlBtn = document.getElementById("voice-control");
+        voiceControlBtn.addEventListener("click", () => {
+          const recognition = new (window.SpeechRecognition ||
+            window.webkitSpeechRecognition)();
+          recognition.lang = "vi-VN";
+          recognition.interimResults = false;
+
+          recognition.start();
+
+          recognition.onresult = (event) => {
+            const command = event.results[0][0].transcript.toLowerCase();
+            console.log("Lệnh nhận diện:", command);
+
+            if (command.includes("bật bơm") || command.includes("bật bom")) {
+              // Nếu chưa ở trạng thái bật, thì click để bật
+              if (toggleBtn.textContent.includes("Bật")) {
+                if (modeToggle.checked) {
+                  modeToggle.checked = false;
+                  modeToggle.dispatchEvent(new Event("change")); // nếu bạn có lắng nghe sự kiện change
+                }
+                toggleBtn.click();
+                speak("Bơm đã được bật.");
+              } else {
+                speak("Bơm đang bật rồi.");
+              }
+            } else if (command.includes("tắt bơm") || command.includes("tắt bom")) {
+              // Nếu chưa ở trạng thái tắt, thì click để tắt
+              if (toggleBtn.textContent.includes("Tắt")) {
+                if (modeToggle.checked) {
+                  modeToggle.checked = false;
+                  modeToggle.dispatchEvent(new Event("change")); // nếu bạn có lắng nghe sự kiện change
+                }
+                toggleBtn.click();
+                speak("Bơm đã được tắt.");
+              } else {
+                speak("Bơm đang tắt rồi.");
+              }
+            } else if (command.includes("tắt tự động")) {
+              if (modeToggle.checked) {
+                modeToggle.checked = false;
+                modeToggle.dispatchEvent(new Event("change")); // nếu bạn có lắng nghe sự kiện change
+                speak("Chế độ tự động đã được tắt.");
+              } else {
+                speak("Chế độ tự động đang tắt rồi.");
+              }
+            } else if (command.includes("bật tự động")) {
+              if (!modeToggle.checked) {
+                modeToggle.checked = true;
+                modeToggle.dispatchEvent(new Event("change")); // nếu bạn có lắng nghe sự kiện change
+                speak("Chế độ tự động đã được bật.");
+              } else {
+                speak("Chế độ tự động đang bật rồi.");
+              }
+            } else if (command.includes("ngưỡng độ ẩm")) {
+              const match = command.match(/\d+/);
+              if (match) {
+                const threshold = Number(match[0]);
+
+                if (threshold < 0 || threshold > 100) {
+                  speak(
+                    "Ngưỡng độ ẩm không hợp lệ. Vui lòng nhập lại trong khoảng từ 0 đến 100 phần trăm."
+                  );
+                } else {
+                  document.getElementById("threshold-input").value = threshold;
+                  document.getElementById("set-threshold").click();
+                  speak(
+                    `Ngưỡng độ ẩm đã được thay đổi thành ${threshold} phần trăm.`
+                  );
+                }
+              } else {
+                speak("Vui lòng cung cấp một ngưỡng độ ẩm hợp lệ.");
+              }
+            } else if (command.includes("thông tin")) {
+              const humidity =
+                document.getElementById("soil-moisture").textContent;
+              speak(`Độ ẩm đất hiện tại là ${humidity} phần trăm.`);
+            } else {
+              speak("Lệnh không hợp lệ. Vui lòng thử lại.");
+            }
+          };
+
+          recognition.onerror = (event) => {
+            console.error("Lỗi nhận diện:", event.error);
+            speak("Có lỗi xảy ra trong quá trình nhận diện.");
+          };
+        });
       });
 
       function onChangeAutoMode() {
@@ -429,6 +524,14 @@
             }
           }
         }
+      }
+
+      // Điều khiển bằng giọng nói
+
+      function speak(text) {
+        const utterance = new SpeechSynthesisUtterance(text); // Tạo đối tượng giọng nói
+        utterance.lang = "vi-VN"; // Đặt ngôn ngữ là tiếng Việt
+        window.speechSynthesis.speak(utterance); // Phát âm văn bản
       }
 
       function updateChart(time, moisture) {

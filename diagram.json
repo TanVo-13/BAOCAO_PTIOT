@@ -261,21 +261,6 @@
       "attrs": {}
     },
     {
-      "type": "wokwi-servo",
-      "id": "servo1",
-      "top": 247.6,
-      "left": 316.8,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-gnd",
-      "id": "gnd11",
-      "top": 269.3,
-      "left": 249.9,
-      "rotate": 90,
-      "attrs": {}
-    },
-    {
       "type": "wokwi-stepper-motor",
       "id": "stepper2",
       "top": -121.19,
@@ -320,14 +305,6 @@
       "id": "gnd13",
       "top": 96.9,
       "left": -289.1,
-      "rotate": 270,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-vcc",
-      "id": "vcc10",
-      "top": 292.8,
-      "left": 245.76,
       "rotate": 270,
       "attrs": {}
     },
@@ -382,8 +359,8 @@
     {
       "type": "wokwi-vcc",
       "id": "vcc15",
-      "top": 210.24,
-      "left": 777.8,
+      "top": 200.64,
+      "left": 816.2,
       "rotate": 180,
       "attrs": {}
     },
@@ -400,6 +377,54 @@
       "id": "vcc17",
       "top": 200.64,
       "left": 758.6,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-stepper-motor",
+      "id": "stepper3",
+      "top": 224.41,
+      "left": 336.43,
+      "attrs": {
+        "size": "17"
+      }
+    },
+    {
+      "type": "wokwi-a4988",
+      "id": "drv3",
+      "top": 475.4,
+      "left": 389.2,
+      "rotate": 270,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc10",
+      "top": 423.16,
+      "left": 508.8,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc19",
+      "top": 575.04,
+      "left": 393.8,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-vcc",
+      "id": "vcc20",
+      "top": 584.64,
+      "left": 422.6,
+      "rotate": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-gnd",
+      "id": "gnd11",
+      "top": 443,
+      "left": 547,
       "rotate": 180,
       "attrs": {}
     }
@@ -565,24 +590,6 @@
       ]
     ],
     [
-      "gnd11:GND",
-      "servo1:GND",
-      "black",
-      [
-        "v0",
-        "h38.4"
-      ]
-    ],
-    [
-      "servo1:PWM",
-      "esp:15",
-      "green",
-      [
-        "h-105.6",
-        "v-28.6"
-      ]
-    ],
-    [
       "stepper2:A-",
       "drv2:2B",
       "green",
@@ -655,14 +662,6 @@
       "black",
       [
         "h0"
-      ]
-    ],
-    [
-      "vcc10:VCC",
-      "servo1:V+",
-      "red",
-      [
-        "v0"
       ]
     ],
     [
@@ -899,6 +898,108 @@
       "green",
       [
         "v0"
+      ]
+    ],
+    [
+      "stepper3:A-",
+      "drv3:2B",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "stepper3:A+",
+      "drv3:2A",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "stepper3:B+",
+      "drv3:1A",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "stepper3:B-",
+      "drv3:1B",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "drv3:VDD",
+      "vcc10:VCC",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "drv2:DIR",
+      "vcc15:VCC",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "esp:16",
+      "drv3:ENABLE",
+      "green",
+      [
+        "h105.6",
+        "v307.2"
+      ]
+    ],
+    [
+      "esp:2",
+      "drv3:STEP",
+      "green",
+      [
+        "h86.4",
+        "v326.4",
+        "h153.6"
+      ]
+    ],
+    [
+      "drv3:SLEEP",
+      "vcc20:VCC",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "drv3:RESET",
+      "vcc19:VCC",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "drv3:GND.1",
+      "gnd11:GND",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:4",
+      "drv3:DIR",
+      "green",
+      [
+        "h76.8",
+        "v336",
+        "h172.8",
+        "v-19.2"
       ]
     ]
   ],

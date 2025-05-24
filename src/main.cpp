@@ -7,9 +7,6 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <time.h>
-#include <ESP32Servo.h>
-
-Servo myservo;
 
 // Thông tin MQTT
 const char *MQTTServer = "broker.emqx.io";
@@ -34,7 +31,6 @@ LiquidCrystal_I2C lcd(0x27, 20, 4);
 DHT dht(DHTPIN, DHTTYPE);
 #define khigas 35
 #define doamdat 34
-#define mua 5
 #define echoPin 25
 #define trigPin 26
 #define anhsang 32
@@ -49,6 +45,12 @@ DHT dht(DHTPIN, DHTTYPE);
 #define enPinHo 14
 #define stepPinTuoi 0
 #define enPinTuoi 17
+
+// motor máy che
+#define stepPinMayChe 2
+#define enPinMayChe 16
+#define dirPinMayche 4
+#define mua 5
 
 // Biến điều khiển
 bool automodeDht = true;
@@ -78,6 +80,8 @@ const unsigned long stepIntervalHo = 800;
 bool motorTuoiRunning = false;
 unsigned long lastStepTimeTuoi = 0;
 const unsigned long stepIntervalTuoi = 800;
+
+int trangthai_muatruocdo = -1;
 
 // Cấu trúc cho lịch bật/tắt đèn
 struct Schedule
@@ -218,6 +222,33 @@ void runStepperMotorTuoi()
       lastStepTimeTuoi = currentTime;
     }
   }
+}
+
+void dieuKhienMayChe(int trangthai_mua)
+{
+  digitalWrite(enPinMayChe, LOW); // Bật máy che
+
+  if (trangthai_mua == 1)
+  {
+    Serial.println("Troi mua - Quay mo may che");
+    digitalWrite(dirPinMayche, HIGH); // Chiều thuận (mở mái che)
+  }
+  else
+  {
+    Serial.println("Khong mua - Quay thu may che");
+    digitalWrite(dirPinMayche, LOW); // Chiều ngược (thu mái che)
+  }
+
+  // Quay một số bước
+  for (int i = 0; i < 200; i++)
+  {
+    digitalWrite(stepPinMayChe, HIGH);
+    delayMicroseconds(800); // Điều chỉnh tốc độ
+    digitalWrite(stepPinMayChe, LOW);
+    delayMicroseconds(800);
+  }
+
+  digitalWrite(enPinMayChe, HIGH); // Tắt động cơ sau khi quay xong
 }
 
 // Xử lý tin nhắn MQTT
@@ -468,16 +499,15 @@ void callback(char *topic, byte *message, unsigned int length)
   if (String(topic) == "HeThongNhaThongMinh/Mua/Control/Mayche")
   {
     automodeMua = false; // Giữ chế độ thủ công
-    if (stMessage == "ON")
+    
+    if (stMessage == "Mayche_ON")
     {
-      myservo.write(180);
-      delay(500);
+      dieuKhienMayChe(1);
       Serial.println("May che da BAT");
     }
-    else if (stMessage == "OFF")
+    else if (stMessage == "Mayche_OFF")
     {
-      myservo.write(0);
-      delay(500);
+      dieuKhienMayChe(0);
       Serial.println("May che da TAT");
     }
   }
@@ -533,8 +563,6 @@ void setup()
   }
 
   dht.begin();
-  myservo.attach(maiche);
-  myservo.write(0);
   pinMode(dieuhoa, OUTPUT);
   pinMode(coi, OUTPUT);
   pinMode(doamdat, INPUT);
@@ -550,6 +578,12 @@ void setup()
   pinMode(enPinTuoi, OUTPUT);
   digitalWrite(enPinHo, HIGH);
   digitalWrite(enPinTuoi, HIGH);
+  digitalWrite(enPinMayChe, HIGH);
+
+  pinMode(stepPinMayChe, OUTPUT);
+  pinMode(enPinMayChe, OUTPUT);
+  pinMode(dirPinMayche, OUTPUT);
+  digitalWrite(enPinMayChe, HIGH);
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -705,17 +739,10 @@ void loop()
 
     if (automodeMua)
     {
-      if (trangthai_mua == LOW)
+      if (trangthai_mua != trangthai_muatruocdo)
       {
-        myservo.write(0); // đóng mái
-        delay(500);
-        Serial.println("Đóng mái che");
-      }
-      else
-      {
-        myservo.write(180); // mở mái
-        delay(500);
-        Serial.println("Mở mái che");
+        trangthai_muatruocdo = trangthai_mua;
+        dieuKhienMayChe(trangthai_mua);
       }
     }
 
