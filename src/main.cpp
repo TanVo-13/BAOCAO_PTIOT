@@ -500,12 +500,12 @@ void callback(char *topic, byte *message, unsigned int length)
   {
     automodeMua = false; // Giữ chế độ thủ công
     
-    if (stMessage == "Mayche_ON")
+    if (stMessage == "ON")
     {
       dieuKhienMayChe(1);
       Serial.println("May che da BAT");
     }
-    else if (stMessage == "Mayche_OFF")
+    else if (stMessage == "OFF")
     {
       dieuKhienMayChe(0);
       Serial.println("May che da TAT");

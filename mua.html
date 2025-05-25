@@ -64,6 +64,13 @@
               ></div>
             </div>
           </label>
+
+          <button
+            id="voice-control"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            🎙️ Điều khiển bằng giọng nói
+          </button>
         </div>
       </section>
 
@@ -74,9 +81,23 @@
     </div>
 
     <script type="module" src="./src/js/firebase.js"></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+    ></script>
+    <script type="text/javascript">
+      (function () {
+        emailjs.init({
+          publicKey: "s7ogpJB5PDDiJFUHe",
+        });
+      })();
+    </script>
     <script>
       let client;
       let rainChart;
+      let isRecognizing = false;
+      let recognition;
+      let lastEmailSentTime = null;
 
       document.addEventListener("DOMContentLoaded", () => {
         const ctx = document.getElementById("rain-chart").getContext("2d");
@@ -206,15 +227,6 @@
                     +childSnapshot.key
                   ).toLocaleTimeString();
                   updateChart(time, parseInt(data.isRaining));
-
-                  Swal.fire({
-                    title: "Dữ liệu lịch sử",
-                    text: `Thời gian: ${time}, Trạng thái: ${
-                      data.isRaining === 1 ? "Đang mưa" : "Không mưa"
-                    }`,
-                    icon: "info",
-                    confirmButtonText: "OK",
-                  });
                 });
               });
           }
@@ -279,6 +291,97 @@
           coverStatus.classList.toggle("text-green-600", !isOpen);
           toggleBtn.textContent = isOpen ? "Mở máy che" : "Đóng máy che";
         });
+
+        // Xử lý nút điều khiển bằng giọng nói
+        const voiceControlBtn = document.getElementById("voice-control");
+        voiceControlBtn.addEventListener("click", () => {
+          if (!isRecognizing) {
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = "vi-VN";
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+              const command = event.results[0][0].transcript.toLowerCase();
+              console.log("Lệnh nhận diện:", command);
+
+              if (
+                command.includes("mở máy che") ||
+                command.includes("mở mái che")
+              ) {
+                if (toggleBtn.textContent.includes("Mở")) {
+                  if (modeToggle.checked) {
+                    modeToggle.checked = false;
+                    modeToggle.dispatchEvent(new Event("change"));
+                  }
+                  toggleBtn.click();
+                  speak("Đã mở máy che.");
+                } else {
+                  speak("Máy che đang mở.");
+                }
+              } else if (
+                command.includes("đóng máy che") ||
+                command.includes("đóng mái che")
+              ) {
+                if (toggleBtn.textContent.includes("Đóng")) {
+                  if (modeToggle.checked) {
+                    modeToggle.checked = false;
+                    modeToggle.dispatchEvent(new Event("change"));
+                  }
+                  toggleBtn.click();
+                  speak("Đã đóng máy che.");
+                } else {
+                  speak("Máy che đang đóng.");
+                }
+              } else if (command.includes("tắt tự động")) {
+                if (modeToggle.checked) {
+                  modeToggle.checked = false;
+                  modeToggle.dispatchEvent(new Event("change"));
+                  speak("Đã tắt chế độ tự động.");
+                } else {
+                  speak("Chế độ tự động đang tắt");
+                }
+              } else if (command.includes("bật tự động")) {
+                if (!modeToggle.checked) {
+                  modeToggle.checked = true;
+                  modeToggle.dispatchEvent(new Event("change"));
+                  speak("Đã bật chế độ tự động.");
+                } else {
+                  speak("Chế độ tự động đang bật");
+                }
+              } else if (command.includes("thông tin")) {
+                const isRaining =
+                  document.getElementById("rain-status").textContent;
+                speak(
+                  `Trạng thái thời tiết hiện tại là: ${isRaining}. Máy che hiện tại ${
+                    coverStatus.textContent.includes("mở")
+                      ? "đang mở"
+                      : "đang đóng"
+                  }.`
+                );
+              } else {
+                speak("Lệnh không nhận diện được. Vui lòng thử lại.");
+              }
+            };
+
+            recognition.onerror = (event) => {
+              console.error("Lỗi nhận diện giọng nói:", event.error);
+              speak("Không thể nhận diện lệnh. Vui lòng thử lại.");
+            };
+
+            recognition.onend = () => {
+              isRecognizing = false;
+              voiceControlBtn.textContent = "🎙️ Điều khiển bằng giọng nói";
+              voiceControlBtn.classList.replace("bg-red-500", "bg-blue-500");
+            };
+
+            recognition.start();
+            isRecognizing = true;
+            voiceControlBtn.textContent = "⏹️ Dừng điều khiển";
+            voiceControlBtn.classList.replace("bg-blue-500", "bg-red-500");
+          } else {
+            recognition.stop(); // onend sẽ xử lý giao diện
+          }
+        });
       });
 
       function onChangeAutoMode() {
@@ -305,7 +408,7 @@
         if (message.destinationName === "HeThongNhaThongMinh") {
           const data = JSON.parse(message.payloadString);
           console.log(data);
-          const isRaining = parseInt(data.mua); 
+          const isRaining = parseInt(data.mua);
           console.log("isRaining:", isRaining);
           const autoMode = data.automodeMua;
           const timeStr = new Date().toLocaleTimeString();
@@ -340,18 +443,80 @@
 
           if (autoMode) {
             if (isRaining === 0) {
-              // Nếu đang k mưa, đóng máy che
               coverStatus.textContent = "Đang đóng";
               coverStatus.classList.remove("text-green-600");
               toggleBtn.textContent = "Mở máy che";
             } else {
-              // Nếu không mưa, mở máy che
               coverStatus.textContent = "Đang mở";
               coverStatus.classList.add("text-green-600");
               toggleBtn.textContent = "Đóng máy che";
+
+              trySendMailWithThrottle();
             }
           }
         }
+      }
+
+      function sendMail() {
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            const currentTime = new Date().toLocaleString("vi-VN", {
+              hour12: false,
+            });
+
+            const templateParams = {
+              to_email: user.email, // thêm biến này
+              name: user.email || "Người dùng",
+              time: currentTime,
+              message: "Hệ thống cảnh báo: Hiện tại đang có mưa.",
+              subject: "Thông báo thời tiết: Có mưa",
+            };
+
+            emailjs
+              .send("service_roktsng", "template_oo17pij", templateParams)
+              .then((response) => {
+                console.log(
+                  "Email đã gửi thành công!",
+                  response.status,
+                  response.text
+                );
+
+                lastEmailSentTime = new Date();
+              })
+              .catch((error) => {
+                console.error("Gửi email thất bại:", error);
+              });
+          } else {
+            console.warn("Chưa đăng nhập, không thể gửi email.");
+          }
+        });
+      }
+
+      function trySendMailWithThrottle() {
+        const now = new Date();
+
+        if (lastEmailSentTime) {
+          const diffMs = now - lastEmailSentTime;
+          const diffMinutes = diffMs / (60 * 1000);
+
+          if (diffMinutes < 30) {
+            console.log(
+              `Chưa đủ 30 phút kể từ lần gửi trước (${Math.ceil(
+                30 - diffMinutes
+              )} phút nữa mới được gửi).`
+            );
+            return;
+          }
+        }
+
+        // Đủ 30 phút hoặc lần đầu gửi
+        sendMail();
+      }
+
+      function speak(text) {
+        const utterance = new SpeechSynthesisUtterance(text); // Tạo đối tượng giọng nói
+        utterance.lang = "vi-VN"; // Đặt ngôn ngữ là tiếng Việt
+        window.speechSynthesis.speak(utterance); // Phát âm văn bản
       }
 
       function updateChart(time, isRaining) {
